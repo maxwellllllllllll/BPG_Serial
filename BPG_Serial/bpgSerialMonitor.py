@@ -1,7 +1,13 @@
 # TODO:
 # Enable Multithreading for parallel collection and processing
+# Add GUI
+# Add error checking and correction
 
 import serial
+
+class checksumError(Exception):
+    def __init__(self, value):
+        self.value = value
 
 def serialInit():
     print("Initializing serial connection")
@@ -12,7 +18,7 @@ def serialInit():
 
     return ser
 
-# Not currently used in single threaded version
+# Not currently used
 def serialLoop(ser):
     count = 0
 
@@ -45,9 +51,11 @@ def bytesDecode(bytesList):
     measurementLo = bytesList[5]
     softwareVer = bytesList[6]
     sensorType = bytesList[7]
-    checkSum = bytesList[8]
+    checksum = bytesList[8]
 
     # put error checking here
+    if sum(bytesList[-1]) != checksum:
+        raise checksumError
 
 
     return status, measurementHi, measurementLo
@@ -55,8 +63,9 @@ def bytesDecode(bytesList):
 
 def calculatePressure(measurementHi, measurementLo):
     pMbarr = pow(10, (((measurementHi * 256) + measurementLo)/(4000))-12.5)
+    pTorr = pMbarr * 1.3332236842
 
-    return pMbarr
+    return pMbarr, pTorr
 
 
 def main():
