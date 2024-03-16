@@ -54,8 +54,8 @@ def bytesDecode(bytesList):
     checksum = bytesList[8]
 
     # put error checking here
-    if sum(bytesList[-1]) != checksum:
-        raise checksumError
+    #if sum(bytesList[-1]) != checksum:
+    #    raise checksumError
 
 
     return status, measurementHi, measurementLo
@@ -71,11 +71,12 @@ def calculatePressure(measurementHi, measurementLo):
 def main():
     ser = serialInit()
 
-    bytesList = serialRead(ser)
+    while True:
+        bytesList = serialRead(ser)
 
-    status, measurementHi, measurementLo = bytesDecode(bytesList)
+        status, measurementHi, measurementLo = bytesDecode(bytesList)
 
-    print(calculatePressure(measurementHi, measurementLo))
+        print(calculatePressure(measurementHi, measurementLo))
 
 
 
