@@ -22,7 +22,7 @@ statusData = b"\x00\x00\x00\x00\x00\x00\x00\x00"
 statusFrame = GsUsbFrame(can_id= 0x108040FE | CAN_EFF_FLAG, data=statusData) #GsUsbFrame(can_id= 0x108040FE, data=data)
 
 
-current = 1
+current = 10
 MAX_CURRENT = 50
 value = int((current / MAX_CURRENT) * 1024.0)
 print(value)
@@ -30,15 +30,17 @@ data7 = (value & 0xFF00) >> 8
 data8 = value & 0xFF
 print(data7, data8)
 
-currentBumpData = b"\x01\x03\x00\x00\x00\x00\x00\x28"
-currentBumpFrame = GsUsbFrame(can_id= 0x108180FE  | CAN_EFF_FLAG, data=currentBumpData)
+current1AData = b"\x01\x03\x00\x00\x00\x00\x00\x14"
+current1AFrame = GsUsbFrame(can_id= 0x108180FE  | CAN_EFF_FLAG, data=current1AData)
 
-voltage = 50
-voltVal = int((voltage) * 1024.0)
-vdata7 = (voltVal & 0xFF00) >> 8
-vdata8 = voltVal & 0xFF
-print(voltVal)
-print(vdata7, vdata8)
+current10AData = b"\x01\x03\x00\x00\x00\x00\x00\xCC"
+current10AFrame = GsUsbFrame(can_id= 0x108180FE  | CAN_EFF_FLAG, data=current10AData)
+
+current20AData = b"\x01\x03\x00\x00\x00\x00\x01\x99"
+current20AFrame = GsUsbFrame(can_id= 0x108180FE  | CAN_EFF_FLAG, data=current10AData)
+
+currentBumpData = b"\x01\x03\x00\x00\x00\x00\x03\x33"
+currentBumpFrame = GsUsbFrame(can_id= 0x108180FE  | CAN_EFF_FLAG, data=currentBumpData)
 
 voltageData = b"\x01\x00\x00\x00\x00\x00\xC8\x00"
 voltageFrame = GsUsbFrame(can_id= 0x108180FE | CAN_EFF_FLAG, data=voltageData)
@@ -50,36 +52,51 @@ def main():
     if len(devs) == 0:
         print("Can not find gs_usb device")
         return
-    
-    dev = devs[1]
-    print(dev)
 
-    dev.stop()
+    dev1 = devs[0]
+    dev2 = devs[1]
 
-    if not dev.set_bitrate(125000):
+    print(dev1, dev2)
+
+    dev1.stop()
+    dev2.stop()
+
+    if not dev1.set_bitrate(125000):
+        print("Can not set bitrate for gs_usb")
+        return
+
+    if not dev2.set_bitrate(125000):
         print("Can not set bitrate for gs_usb")
         return
     
-    dev.start(GS_CAN_MODE_NORMAL)
+    dev1.start(GS_CAN_MODE_NORMAL)
+    dev2.start(GS_CAN_MODE_NORMAL)
 
     count = 0
     count2 = 0
     while True:
         iframe = GsUsbFrame()
 
-        if dev.read(iframe, 1):
-            print("RX:  {}".format(iframe), count2)
+        if dev1.read(iframe, 1):
+            print("RX1:  {}".format(iframe), count2, count)
             count +=1
             count2 +=1
         
-        if count == 20 and count2 != 1000:
-            dev.send(statusFrame)
-            print("send", count2)
+        if dev2.read(iframe, 1):
+            print("RX2:  {}".format(iframe), count2, count)
+            count +=1
+            count2 +=1
+        
+        if count >= 40 and count2 != 1000:
+            dev1.send(statusFrame)
+            dev2.send(statusFrame)
+            print("send", count2, count)
             count = 0
 
         if count2 == 1000:
-            dev.send(currentBumpFrame)
-            print("current change")
+            dev1.send(current20AFrame)
+            dev2.send(current20AFrame)
+            print("current change to 20A")
         
 
 
@@ -90,6 +107,9 @@ if __name__ == "__main__":
         # When press keyboard to kill the codes. The usb2can will not auto-stop.It may risk error when you open it next time.
         #So added below code to stop it.
         devs = GsUsb.scan()
-        dev = devs[0]
-        dev.stop()
+        dev1 = devs[0]
+        dev1.stop()
+
+        dev2 = devs[1]
+        dev2.stop()
         pass
